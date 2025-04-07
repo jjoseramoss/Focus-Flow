@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Timecard from "./components/TimeCard";
 import "./App.css";
+import Tasks from "./components/Tasks";
 
 function App() {
   
@@ -17,7 +18,7 @@ function App() {
 
       {/* Timecard */}
       <Timecard />
-      
+      <Tasks />
     </div>
 
   );

@@ -1,63 +1,128 @@
-import { useState, useEffect} from 'react';
+import { useState, useEffect } from "react";
 
-function Timecard(props){
-    const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes
-    const [isRuning, setIsRunning] = useState(false);
+function Timecard() {
+  const [timeLeft, setTimeLeft] = useState(1 * 60); // 1 minute for testing
+  const [isRunning, setIsRunning] = useState(false);
+  const [mode, setMode] = useState("focus"); // "focus" or "break"
 
-    useEffect(() => {
-        let interval = null;
+  const [sessionCount, setSessionCount] = useState(() => {
+    const saved = localStorage.getItem("sessionCount");
+    return saved ? parseInt(saved) : 0;
+  });
 
-        if(isRuning){
-            interval = setInterval(() => {
-                setTimeLeft((prevTime) => {
-                    if(prevTime === 0){
-                        clearInterval(interval);
-                        return 0;
-                    }
-                    return prevTime - 1;
-                });
-            }, 1000); // every second
-        } else if(!isRuning && timeLeft != 0){
-            clearInterval(interval);
-        }
-        return () => clearInterval(interval);
+  // Countdown interval
+  useEffect(() => {
+    let interval = null;
 
-    }, [isRuning]);
-
-    function formatTime(seconds) {
-        const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
-        const secs = (seconds % 60).toString().padStart(2, "0");
-        return `${minutes}:${secs}`;
+    if (isRunning) {
+      interval = setInterval(() => {
+        setTimeLeft((prev) => Math.max(prev - 1, 0));
+      }, 1000);
+    } else {
+      clearInterval(interval);
     }
 
-    return (
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 flex flex-col items-center">
-        {/* Timer Display */}
-        <div className="text-6xl font-mono mb-2">{formatTime(timeLeft)}</div>
-        <div className="text-lg text-gray-500 mb-6">Focus Mode</div>
+    return () => clearInterval(interval);
+  }, [isRunning]);
 
-        {/* Controls */}
-        <div className="flex gap-4 mb-6">
-          <button onClick={() => setIsRunning(!isRuning)} className={`${isRuning ? "bg-red-500":"bg-blue-500"} text-white px-4 py-2 rounded-xl hover:opacity-80 transition`}>{isRuning ? "Pause" : "Start"}</button>
-          
-          
-          <button onClick={() => {
-            setIsRunning(false);
-            setTimeLeft(25 * 60);
-          }} className="bg-gray-300 text-white px-4 py-2 rounded-xl hover:bg-gray-500 transition">Reset</button>
-          
-          <button className="bg-gray-300 text-white px-4 py-2 rounded-xl hover:bg-gray-500 transition">Skip</button>
-        </div>
+  // Handle what happens when timer hits 0
+  useEffect(() => {
+    if (timeLeft === 0 && isRunning) {
+      setIsRunning(false);
 
-        {/* Session Counter */}
-        <div className="text-sm text-gray-600">🔁 Session Completed: 2</div>
+      if (mode === "focus") {
+        setSessionCount((prev) => prev + 1);
+        setMode("break");
+        setTimeLeft(1 * 60); // 1-minute break
+      } else {
+        setMode("focus");
+        setTimeLeft(1 * 60); // back to focus
+      }
+    }
+  }, [timeLeft, isRunning, mode]);
 
-        {/* Optional Quote */}
-        <div className="mt-4 italic text-center text-gray-400 text-sm">
-          "Small steps every day."
-        </div>
-        </div>
-    );
+  // Save sessionCount to localStorage
+  useEffect(() => {
+    localStorage.setItem("sessionCount", sessionCount.toString());
+  }, [sessionCount]);
+
+  // Format seconds to MM:SS
+  function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, "0");
+    const secs = (seconds % 60).toString().padStart(2, "0");
+    return `${minutes}:${secs}`;
+  }
+
+  // Skip to next mode manually
+  function handleSkip() {
+    setIsRunning(false);
+
+    if (mode === "focus") {
+      setMode("break");
+      setTimeLeft(1 * 60);
+    } else {
+      setMode("focus");
+      setTimeLeft(1 * 60);
+    }
+  }
+
+  // Reset timer only
+  function handleReset() {
+    setIsRunning(false);
+    setTimeLeft(1 * 60);
+  }
+
+  return (
+    <div
+      className={`w-full max-w-md ${
+        mode === "focus" ? "bg-bittersweet" : "bg-regent"
+      } rounded-2xl shadow-lg p-8 flex flex-col items-center`}
+    >
+      {/* Timer Display */}
+      <div className="text-6xl font-mono mb-2">{formatTime(timeLeft)}</div>
+      <div className="text-lg text-gray-500 mb-6">
+        {mode === "focus" ? "Focus Mode" : "Break Time"}
+      </div>
+
+      {/* Controls */}
+      <div className="flex gap-4 mb-6">
+        <button
+          onClick={() => setIsRunning(!isRunning)}
+          className={`${
+            isRunning ? "bg-red-500" : "bg-blue-500"
+          } text-white px-4 py-2 rounded-xl hover:opacity-80 transition`}
+        >
+          {isRunning ? "Pause" : "Start"}
+        </button>
+
+        <button
+          onClick={handleReset}
+          className="bg-gray-300 text-white px-4 py-2 rounded-xl hover:bg-gray-500 transition"
+        >
+          Reset
+        </button>
+
+        <button
+          onClick={handleSkip}
+          className="bg-gray-300 text-white px-4 py-2 rounded-xl hover:bg-gray-500 transition"
+        >
+          Skip
+        </button>
+      </div>
+
+      {/* Session Counter */}
+      <div className="text-sm text-gray-600">
+        🔁 Sessions Completed: {sessionCount}
+      </div>
+
+      {/* Optional Quote */}
+      <div className="mt-4 italic text-center text-gray-400 text-sm">
+        "Small steps every day."
+      </div>
+    </div>
+  );
 }
 
 export default Timecard;
